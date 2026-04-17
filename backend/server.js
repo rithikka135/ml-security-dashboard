@@ -71,6 +71,12 @@ app.get("/analyze", (req, res) => {
     count: logs.length
   });
 });
+app.get("/test", (req, res) => {
+  res.json({
+    status: "UPDATED SUCCESSFULLY",
+    time: new Date().toISOString()
+  });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
