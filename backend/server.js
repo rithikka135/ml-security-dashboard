@@ -1,94 +1,121 @@
 const express = require("express");
-const cors = require("cors");
 const path = require("path");
-
-const { analyze, detectSuspiciousIPs } = require("./analyzer");
-const { logEvent } = require("./logger");
+const cors = require("cors");
 
 const app = express();
 
+/* =========================
+   MIDDLEWARE
+========================= */
 app.use(cors());
 app.use(express.json());
 
-// 🚨 NO CACHE MIDDLEWARE (IMPORTANT FOR RENDER)
-app.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
-  res.setHeader("Pragma", "no-cache");
-  res.setHeader("Expires", "0");
-  next();
-});
+/* =========================
+   FRONTEND PATH (IMPORTANT FIX)
+========================= */
+const frontendPath = path.join(__dirname, "../frontend");
 
-// Serve frontend
-app.use(express.static(path.join(__dirname, "../frontend")));
+app.use(express.static(frontendPath));
 
+/* =========================
+   HOME ROUTE
+========================= */
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/login.html"));
+  res.sendFile(path.join(frontendPath, "login.html"));
 });
 
+/* =========================
+   MEMORY STORAGE
+========================= */
 let logs = [];
 
-/* LOGIN */
+/* =========================
+   LOGIN API
+========================= */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
-  logEvent(`LOGIN: ${username}`);
-
   if (username === "admin" && password === "admin123") {
-    return res.json({ success: true, role: "admin", username });
+    return res.json({ success: true, role: "admin" });
   }
 
   if (username === "user" && password === "user123") {
-    return res.json({ success: true, role: "user", username });
+    return res.json({ success: true, role: "user" });
   }
 
-  res.json({ success: false });
+  return res.json({ success: false });
 });
 
-/* ADD LOG */
+/* =========================
+   ADD LOG API
+========================= */
 app.post("/add-log", (req, res) => {
   const { log } = req.body;
 
-  if (!log) return res.status(400).json({ message: "log required" });
+  if (!log) {
+    return res.status(400).json({ message: "Log is required" });
+  }
 
   logs.push(log);
-  logEvent(`LOG: ${log}`);
 
-  res.json({ message: "added" });
+  return res.json({
+    message: "added",
+    totalLogs: logs.length
+  });
 });
 
-/* GET LOGS */
+/* =========================
+   GET LOGS API
+========================= */
 app.get("/logs", (req, res) => {
   res.json(logs);
 });
 
-/* CLEAR LOGS */
+/* =========================
+   CLEAR LOGS API
+========================= */
 app.post("/clear", (req, res) => {
   logs = [];
-  logEvent("LOGS CLEARED");
   res.json({ message: "cleared" });
 });
 
-/* ML ANALYSIS */
+/* =========================
+   ML ANALYSIS (RULE-BASED)
+========================= */
 app.get("/analyze", (req, res) => {
-  const result = analyze(logs);
-  const suspicious = detectSuspiciousIPs(result);
+  const failed = logs.filter(l => l.includes("failed")).length;
+  const success = logs.filter(l => l.includes("success")).length;
 
-  res.json({
-    result,
+  const suspicious = failed >= 3;
+
+  let riskLevel = "LOW";
+  if (failed >= 5) riskLevel = "HIGH";
+  else if (failed >= 3) riskLevel = "MEDIUM";
+
+  return res.json({
+    total: logs.length,
+    failed,
+    success,
     suspicious,
-    count: logs.length
+    riskLevel
   });
 });
 
-/* TEST ROUTE */
+/* =========================
+   HEALTH CHECK (FOR RENDER)
+========================= */
 app.get("/test", (req, res) => {
   res.json({
-    status: "UPDATED SUCCESSFULLY",
+    status: "RUNNING",
     time: new Date().toISOString()
   });
 });
 
+/* =========================
+   SERVER START
+========================= */
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log("Server running on port", PORT);
+  console.log("🚀 Server running on port", PORT);
 });
