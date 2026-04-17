@@ -10,7 +10,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve frontend
+// static frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 app.get("/", (req, res) => {
@@ -45,7 +45,7 @@ app.post("/add-log", (req, res) => {
   logs.push(log);
   logEvent(`LOG ADDED: ${log}`);
 
-  res.json({ message: "added", logs });
+  res.json({ message: "added" });
 });
 
 /* GET LOGS */
@@ -53,7 +53,7 @@ app.get("/logs", (req, res) => {
   res.json(logs);
 });
 
-/* CLEAR LOGS */
+/* CLEAR */
 app.post("/clear", (req, res) => {
   logs = [];
   logEvent("LOGS CLEARED");
