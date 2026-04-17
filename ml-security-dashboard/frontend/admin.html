@@ -1,0 +1,27 @@
+<script>
+  if (!localStorage.getItem("user")) {
+    window.location.href = "login.html";
+  }
+</script>
+
+<div class="nav">
+  <h3>Admin Panel</h3>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<div class="page">
+  <div class="card">
+
+    <button onclick="loadLogs()">Load Logs</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+
+    <pre id="logs"></pre>
+
+    <button onclick="analyze()">Detect Suspicious IPs</button>
+
+    <pre id="result"></pre>
+
+  </div>
+</div>
+
+<script src="app.js"></script>

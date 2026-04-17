@@ -1,0 +1,48 @@
+<script>
+  if (!localStorage.getItem("user")) {
+    window.location.href = "login.html";
+  }
+</script>
+
+<div class="container">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <h2>User Panel</h2>
+    <button onclick="loadLogs()">Load Logs</button>
+    <button onclick="analyze()">Run ML</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div class="box">
+      <h3>Add Log</h3>
+
+      <input id="user" placeholder="User">
+      <input id="ip" placeholder="IP">
+
+      <select id="status">
+        <option>success</option>
+        <option>failed</option>
+      </select>
+
+      <button onclick="addLog()">Add Log</button>
+    </div>
+
+    <div class="box">
+      <h3>Logs</h3>
+      <pre id="logs"></pre>
+    </div>
+
+    <div class="box">
+      <h3>ML Analysis</h3>
+      <pre id="result"></pre>
+    </div>
+
+  </div>
+
+</div>
+
+<script src="app.js"></script>
