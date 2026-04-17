@@ -7,23 +7,19 @@ const { logEvent } = require("./logger");
 
 const app = express();
 
-/* ================= MIDDLEWARE ================= */
 app.use(cors());
 app.use(express.json());
 
-/* ================= SERVE FRONTEND ================= */
-// IMPORTANT: this makes your website open on Render URL
+// Serve frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-/* HOME ROUTE (LOGIN PAGE) */
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/login.html"));
 });
 
-/* ================= MEMORY STORAGE ================= */
 let logs = [];
 
-/* ================= LOGIN ================= */
+/* LOGIN */
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
@@ -37,16 +33,14 @@ app.post("/login", (req, res) => {
     return res.json({ success: true, role: "user", username });
   }
 
-  return res.json({ success: false });
+  res.json({ success: false });
 });
 
-/* ================= ADD LOG ================= */
+/* ADD LOG */
 app.post("/add-log", (req, res) => {
   const { log } = req.body;
 
-  if (!log) {
-    return res.status(400).json({ message: "log required" });
-  }
+  if (!log) return res.status(400).json({ message: "log required" });
 
   logs.push(log);
   logEvent(`LOG ADDED: ${log}`);
@@ -54,25 +48,22 @@ app.post("/add-log", (req, res) => {
   res.json({ message: "added", logs });
 });
 
-/* ================= GET LOGS ================= */
+/* GET LOGS */
 app.get("/logs", (req, res) => {
   res.json(logs);
 });
 
-/* ================= CLEAR LOGS ================= */
+/* CLEAR LOGS */
 app.post("/clear", (req, res) => {
   logs = [];
   logEvent("LOGS CLEARED");
-
   res.json({ message: "cleared" });
 });
 
-/* ================= ML ANALYSIS ================= */
+/* ML ANALYSIS */
 app.get("/analyze", (req, res) => {
-  const result = analyze(logs) || {};
-  const suspicious = detectSuspiciousIPs(result) || [];
-
-  logEvent("ML ANALYSIS RUN");
+  const result = analyze(logs);
+  const suspicious = detectSuspiciousIPs(result);
 
   res.json({
     result,
@@ -81,14 +72,7 @@ app.get("/analyze", (req, res) => {
   });
 });
 
-/* ================= HEALTH CHECK (IMPORTANT FOR RENDER) ================= */
-app.get("/health", (req, res) => {
-  res.send("OK");
-});
-
-/* ================= START SERVER ================= */
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log("🚀 Server running on port", PORT);
 });
