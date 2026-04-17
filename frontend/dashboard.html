@@ -4,44 +4,34 @@
   }
 </script>
 
-<div class="container">
+<div class="nav">
+  <button onclick="goDashboard()">User Panel</button>
+  <button onclick="goAdmin()">Admin Panel</button>
+  <button onclick="logout()">Logout</button>
+</div>
 
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <h2>User Panel</h2>
-    <button onclick="loadLogs()">Load Logs</button>
-    <button onclick="analyze()">Run ML</button>
-    <button onclick="logout()">Logout</button>
-  </div>
+<div class="card">
 
-  <!-- MAIN -->
-  <div class="main">
+<h2>User Panel</h2>
 
-    <div class="box">
-      <h3>Add Log</h3>
+<input id="user" placeholder="User">
+<input id="ip" placeholder="IP Address">
 
-      <input id="user" placeholder="User">
-      <input id="ip" placeholder="IP">
+<select id="status">
+  <option value="success">success</option>
+  <option value="failed">failed</option>
+</select>
 
-      <select id="status">
-        <option>success</option>
-        <option>failed</option>
-      </select>
+<button onclick="addLog()">Add Log</button>
+<button onclick="loadLogs()">Load Logs</button>
 
-      <button onclick="addLog()">Add Log</button>
-    </div>
+<h3>Logs</h3>
+<pre id="logs"></pre>
 
-    <div class="box">
-      <h3>Logs</h3>
-      <pre id="logs"></pre>
-    </div>
+<button onclick="analyze()">Run ML Analysis</button>
 
-    <div class="box">
-      <h3>ML Analysis</h3>
-      <pre id="result"></pre>
-    </div>
-
-  </div>
+<h3>Result</h3>
+<pre id="result"></pre>
 
 </div>
 
