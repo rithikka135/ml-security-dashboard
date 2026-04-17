@@ -1,13 +1,26 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
+
 const { analyze, detectSuspiciousIPs } = require("./analyzer");
 const { logEvent } = require("./logger");
 
 const app = express();
 
+/* ================= MIDDLEWARE ================= */
 app.use(cors());
 app.use(express.json());
 
+/* ================= SERVE FRONTEND ================= */
+// IMPORTANT: this makes your website open on Render URL
+app.use(express.static(path.join(__dirname, "../frontend")));
+
+/* HOME ROUTE (LOGIN PAGE) */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/login.html"));
+});
+
+/* ================= MEMORY STORAGE ================= */
 let logs = [];
 
 /* ================= LOGIN ================= */
@@ -38,12 +51,12 @@ app.post("/add-log", (req, res) => {
   logs.push(log);
   logEvent(`LOG ADDED: ${log}`);
 
-  return res.json({ message: "added", logs });
+  res.json({ message: "added", logs });
 });
 
 /* ================= GET LOGS ================= */
 app.get("/logs", (req, res) => {
-  return res.json(logs);
+  res.json(logs);
 });
 
 /* ================= CLEAR LOGS ================= */
@@ -51,26 +64,31 @@ app.post("/clear", (req, res) => {
   logs = [];
   logEvent("LOGS CLEARED");
 
-  return res.json({ message: "cleared" });
+  res.json({ message: "cleared" });
 });
 
-/* ================= ML ANALYSIS (FIXED STABLE OUTPUT) ================= */
+/* ================= ML ANALYSIS ================= */
 app.get("/analyze", (req, res) => {
   const result = analyze(logs) || {};
   const suspicious = detectSuspiciousIPs(result) || [];
 
   logEvent("ML ANALYSIS RUN");
 
-  // 🔥 IMPORTANT: prevent empty crash issues
-  return res.json({
+  res.json({
     result,
     suspicious,
     count: logs.length
   });
 });
 
+/* ================= HEALTH CHECK (IMPORTANT FOR RENDER) ================= */
+app.get("/health", (req, res) => {
+  res.send("OK");
+});
+
 /* ================= START SERVER ================= */
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
