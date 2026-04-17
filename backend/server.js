@@ -10,7 +10,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// static frontend
+// 🚨 NO CACHE MIDDLEWARE (IMPORTANT FOR RENDER)
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  next();
+});
+
+// Serve frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 app.get("/", (req, res) => {
@@ -23,7 +31,7 @@ let logs = [];
 app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
-  logEvent(`LOGIN ATTEMPT: ${username}`);
+  logEvent(`LOGIN: ${username}`);
 
   if (username === "admin" && password === "admin123") {
     return res.json({ success: true, role: "admin", username });
@@ -43,7 +51,7 @@ app.post("/add-log", (req, res) => {
   if (!log) return res.status(400).json({ message: "log required" });
 
   logs.push(log);
-  logEvent(`LOG ADDED: ${log}`);
+  logEvent(`LOG: ${log}`);
 
   res.json({ message: "added" });
 });
@@ -53,7 +61,7 @@ app.get("/logs", (req, res) => {
   res.json(logs);
 });
 
-/* CLEAR */
+/* CLEAR LOGS */
 app.post("/clear", (req, res) => {
   logs = [];
   logEvent("LOGS CLEARED");
@@ -71,6 +79,8 @@ app.get("/analyze", (req, res) => {
     count: logs.length
   });
 });
+
+/* TEST ROUTE */
 app.get("/test", (req, res) => {
   res.json({
     status: "UPDATED SUCCESSFULLY",
@@ -80,5 +90,5 @@ app.get("/test", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("🚀 Server running on port", PORT);
+  console.log("Server running on port", PORT);
 });
