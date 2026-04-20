@@ -11,10 +11,9 @@ app.use(cors());
 app.use(express.json());
 
 /* =========================
-   FRONTEND PATH (IMPORTANT FIX)
+   FRONTEND PATH
 ========================= */
 const frontendPath = path.join(__dirname, "../frontend");
-
 app.use(express.static(frontendPath));
 
 /* =========================
@@ -28,6 +27,7 @@ app.get("/", (req, res) => {
    MEMORY STORAGE
 ========================= */
 let logs = [];
+let blockedIPs = [];   // 🔥 NEW
 
 /* =========================
    LOGIN API
@@ -56,6 +56,12 @@ app.post("/add-log", (req, res) => {
     return res.status(400).json({ message: "Log is required" });
   }
 
+  // 🔥 BLOCK CHECK
+  const ip = log.split("|")[1]?.trim();
+  if (blockedIPs.includes(ip)) {
+    return res.json({ message: "❌ BLOCKED IP - log rejected" });
+  }
+
   logs.push(log);
 
   return res.json({
@@ -80,7 +86,47 @@ app.post("/clear", (req, res) => {
 });
 
 /* =========================
-   ML ANALYSIS (RULE-BASED)
+   🔥 GRAPH DATA API (NEW)
+========================= */
+app.get("/stats", (req, res) => {
+  const failed = logs.filter(l => l.includes("failed")).length;
+  const success = logs.filter(l => l.includes("success")).length;
+
+  res.json({
+    success,
+    failed
+  });
+});
+
+/* =========================
+   🔥 BLOCK IP API (NEW)
+========================= */
+app.post("/block-ip", (req, res) => {
+  const { ip } = req.body;
+
+  if (!ip) {
+    return res.status(400).json({ message: "IP required" });
+  }
+
+  if (!blockedIPs.includes(ip)) {
+    blockedIPs.push(ip);
+  }
+
+  res.json({
+    message: "IP BLOCKED",
+    blockedIPs
+  });
+});
+
+/* =========================
+   🔥 GET BLOCKED IPS (NEW)
+========================= */
+app.get("/blocked", (req, res) => {
+  res.json(blockedIPs);
+});
+
+/* =========================
+   ML ANALYSIS (UPDATED)
 ========================= */
 app.get("/analyze", (req, res) => {
   const failed = logs.filter(l => l.includes("failed")).length;
@@ -92,17 +138,23 @@ app.get("/analyze", (req, res) => {
   if (failed >= 5) riskLevel = "HIGH";
   else if (failed >= 3) riskLevel = "MEDIUM";
 
+  // 🔥 REAL-TIME ALERT
+  let alert = "SAFE";
+  if (riskLevel === "HIGH") alert = "🚨 HIGH ATTACK DETECTED";
+  else if (riskLevel === "MEDIUM") alert = "⚠️ Suspicious Activity";
+
   return res.json({
     total: logs.length,
     failed,
     success,
     suspicious,
-    riskLevel
+    riskLevel,
+    alert   // 🔥 NEW
   });
 });
 
 /* =========================
-   HEALTH CHECK (FOR RENDER)
+   HEALTH CHECK
 ========================= */
 app.get("/test", (req, res) => {
   res.json({
