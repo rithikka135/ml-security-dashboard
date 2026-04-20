@@ -5,41 +5,49 @@ on:
     branches: ["main"]
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout code
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # 3. Install backend dependencies
       - name: Install Dependencies
         run: |
           cd backend
           npm install
 
+      # 4. Syntax check
       - name: Check Server File
         run: |
           cd backend
           node -c server.js
 
+      # 5. Login to Docker Hub
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      # 6. Build Docker Image
       - name: Build Docker Image
         run: |
           docker build -t rithikka123/ml-security:latest .
 
+      # 7. Push Docker Image
       - name: Push Docker Image
         run: |
           docker push rithikka123/ml-security:latest
 
-      - name: CI/CD Success Message
-        run: echo "CI/CD Pipeline Completed 🚀"
+      # 8. Success message
+      - name: CI/CD Success
+        run: echo "🚀 CI/CD Pipeline Completed Successfully"
