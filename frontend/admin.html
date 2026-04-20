@@ -6,6 +6,9 @@
 
   <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+
+  <!-- 📊 Chart.js (ADDED ONLY) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -27,6 +30,8 @@
     <button onclick="analyze()">🧠 Run Analysis</button>
     <button onclick="clearLogs()">🗑 Clear Logs</button>
   </div>
+
+  
 
   <!-- 🔥 BLOCK IP -->
   <div class="card">
@@ -58,21 +63,98 @@
     <pre id="result"></pre>
   </div>
 
+  <!-- 🧠🔥 THREAT SCORE SYSTEM (NEW) -->
+  <div class="card full">
+    <h3>🧠 Threat Score System</h3>
+
+    <button onclick="loadThreatScores()">🔄 Refresh Threat Scores</button>
+
+    <div id="threatScoresTable"></div>
+  </div>
+
+  <!-- 📊🔥 ATTACK GRAPH (ADDED) -->
+  <div class="card full">
+    <h3>📊 Attack Trend Graph</h3>
+
+    <canvas id="attackChart"></canvas>
+
+    <button onclick="loadGraph()">🔄 Refresh Graph</button>
+  </div>
+
+  <!-- 🤖 AI CHATBOT -->
+<div class="card full">
+  <h3>🤖 Security AI Chatbot</h3>
+
+  <div id="chatBox" style="height:200px; overflow:auto; background:#111; color:white; padding:10px;"></div>
+
+  <input id="chatInput" placeholder="Ask security question...">
+  <button onclick="sendChat()">Send</button>
+</div>
+
 </div>
 
 <script src="app.js"></script>
 
 <script>
-/* 🔥 LOAD BLOCKED IPS */
-function loadBlocked() {
-  fetch("http://localhost:3000/blocked")
+
+let chart;
+
+/* =========================
+   LOAD LOGS
+========================= */
+function loadLogs() {
+  fetch("http://localhost:3000/logs")
     .then(res => res.json())
     .then(data => {
-      document.getElementById("blockedList").innerText = data.join("\n");
+      document.getElementById("logs").innerText =
+        data.join("\n");
     });
 }
 
-/* 🔥 BLOCK IP */
+/* =========================
+   CLEAR LOGS
+========================= */
+function clearLogs() {
+  fetch("http://localhost:3000/clear", { method: "POST" })
+    .then(() => {
+      document.getElementById("logs").innerText = "";
+    });
+}
+
+/* =========================
+   ANALYZE
+========================= */
+function analyze() {
+  fetch("http://localhost:3000/analyze")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("result").innerText =
+        JSON.stringify(data, null, 2);
+
+      showAlert(data);
+    });
+}
+
+/* =========================
+   ALERT UI
+========================= */
+function showAlert(data) {
+  const box = document.getElementById("alertBox");
+
+  if (data.alert.includes("HIGH")) {
+    box.style.color = "red";
+  } else if (data.alert.includes("Suspicious")) {
+    box.style.color = "orange";
+  } else {
+    box.style.color = "lightgreen";
+  }
+
+  box.innerText = data.alert;
+}
+
+/* =========================
+   BLOCK IP
+========================= */
 function blockIP() {
   const ip = document.getElementById("blockIP").value;
 
@@ -88,35 +170,135 @@ function blockIP() {
   });
 }
 
-/* 🔥 ALERT DISPLAY */
-function showAlert(data) {
-  const box = document.getElementById("alertBox");
-
-  if (data.alert.includes("HIGH")) {
-    box.style.color = "red";
-  } else if (data.alert.includes("Suspicious")) {
-    box.style.color = "orange";
-  } else {
-    box.style.color = "lightgreen";
-  }
-
-  box.innerText = data.alert;
-}
-
-/* 🔥 OVERRIDE ANALYZE */
-function analyze() {
-  fetch("http://localhost:3000/analyze")
+/* =========================
+   LOAD BLOCKED IPS
+========================= */
+function loadBlocked() {
+  fetch("http://localhost:3000/blocked")
     .then(res => res.json())
     .then(data => {
-      document.getElementById("result").innerText =
-        JSON.stringify(data, null, 2);
-
-      showAlert(data); // 🔥 ALERT HOOK
+      document.getElementById("blockedList").innerText =
+        data.join("\n");
     });
 }
 
-/* AUTO LOAD */
+/* =========================
+   🧠 LOAD THREAT SCORES
+========================= */
+function loadThreatScores() {
+  fetch("http://localhost:3000/threat-scores")
+    .then(res => res.json())
+    .then(data => {
+
+      let html = `
+        <table border="1" width="100%" cellpadding="10">
+          <tr>
+            <th>IP Address</th>
+            <th>Score</th>
+            <th>Status</th>
+          </tr>
+      `;
+
+      Object.keys(data).forEach(ip => {
+        const item = data[ip];
+
+        let color = "green";
+        if (item.status === "SUSPICIOUS") color = "orange";
+        if (item.status === "BLOCKED") color = "red";
+
+        html += `
+          <tr>
+            <td>${ip}</td>
+            <td>${item.score}</td>
+            <td style="color:${color}; font-weight:bold">
+              ${item.status}
+            </td>
+          </tr>
+        `;
+      });
+
+      html += "</table>";
+
+      document.getElementById("threatScoresTable").innerHTML = html;
+    });
+}
+
+/* =========================
+   📊 ATTACK GRAPH (NEW)
+========================= */
+function loadGraph() {
+  fetch("http://localhost:3000/stats")
+    .then(res => res.json())
+    .then(data => {
+
+      const ctx = document.getElementById("attackChart").getContext("2d");
+
+      if (chart) {
+        chart.destroy();
+      }
+
+      chart = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: ["Success", "Failed"],
+          datasets: [{
+            label: "Attack Statistics",
+            data: [data.success, data.failed],
+            backgroundColor: ["green", "red"]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    });
+}
+
+/* AUTO REFRESH */
+setInterval(loadThreatScores, 3000);
+setInterval(loadGraph, 3000);
+
+/* INITIAL LOAD */
+loadLogs();
 loadBlocked();
+loadThreatScores();
+loadGraph();
+
+/* =========================
+   🤖 CHATBOT FUNCTION
+========================= */
+
+function sendChat() {
+  const input = document.getElementById("chatInput");
+  const msg = input.value;
+
+  if (!msg) return;
+
+  // show user message
+  document.getElementById("chatBox").innerHTML +=
+    `<div style="color:cyan">You: ${msg}</div>`;
+
+  fetch("http://localhost:3000/chatbot", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg })
+  })
+  .then(res => res.json())
+  .then(data => {
+
+    // show bot reply
+    document.getElementById("chatBox").innerHTML +=
+      `<div style="color:lightgreen">Bot: ${data.reply}</div>`;
+  });
+
+  input.value = "";
+}
+
 </script>
 
 </body>
