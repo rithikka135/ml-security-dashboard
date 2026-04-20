@@ -163,7 +163,6 @@ app.get("/test", (req, res) => {
   });
 });
 
-console.log("CI/CD test run");
 
 /* =========================
    SERVER START
