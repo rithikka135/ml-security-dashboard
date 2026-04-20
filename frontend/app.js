@@ -1,29 +1,31 @@
-function login() {
-  const username = document.getElementById("username").value;
-  const password = document.getElementById("password").value;
-  const msg = document.getElementById("msg");
+const API = "";
 
+/* ================= LOGIN ================= */
+function login() {
   fetch("/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password })
-  })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) {
-        window.location.href =
-          d.role === "admin" ? "/admin.html" : "/dashboard.html";
-      } else {
-        msg.innerText = "❌ Login Failed";
-      }
+    body: JSON.stringify({
+      username: username.value,
+      password: password.value
     })
-    .catch(err => {
-      msg.innerText = "❌ Server Error";
-      console.error(err);
-    });
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+
+      // 🔥 SAVE USER SESSION
+      localStorage.setItem("user", JSON.stringify(d));
+
+      window.location.href =
+        d.role === "admin" ? "/admin.html" : "/dashboard.html";
+    } else {
+      msg.innerText = "❌ Login Failed";
+    }
+  });
 }
 
-/* ADD LOG */
+/* ================= ADD LOG ================= */
 function addLog() {
   const user = document.getElementById("user").value;
   const ip = document.getElementById("ip").value;
@@ -36,43 +38,107 @@ function addLog() {
       log: `${user} | ${ip} | ${status}`
     })
   })
-    .then(() => loadLogs())
-    .catch(err => console.error(err));
+  .then(r => r.json())
+  .then(data => {
+    alert(data.message || "Log Added");
+    loadLogs();
+    loadStats(); // 🔥 update graph
+  });
 }
 
-/* LOAD LOGS */
+/* ================= LOAD LOGS ================= */
 function loadLogs() {
-  const logs = document.getElementById("logs");
-
   fetch("/logs")
     .then(r => r.json())
     .then(d => {
-      logs.innerText = d.length ? d.join("\n") : "No logs found";
-    })
-    .catch(err => {
-      logs.innerText = "Error loading logs";
-      console.error(err);
+      document.getElementById("logs").innerText =
+        d.length ? d.join("\n") : "No logs available";
     });
 }
 
-/* ML ANALYSIS */
+/* ================= ANALYZE ================= */
 function analyze() {
-  const result = document.getElementById("result");
-
   fetch("/analyze")
     .then(r => r.json())
     .then(d => {
-      result.innerText = JSON.stringify(d, null, 2);
-    })
-    .catch(err => {
-      result.innerText = "Analysis failed";
-      console.error(err);
+      document.getElementById("result").innerText =
+        JSON.stringify(d, null, 2);
+
+      showAlert(d); // 🔥 REAL-TIME ALERT
     });
 }
 
-/* CLEAR LOGS */
+/* ================= CLEAR ================= */
 function clearLogs() {
   fetch("/clear", { method: "POST" })
-    .then(() => loadLogs())
-    .catch(err => console.error(err));
+    .then(() => {
+      loadLogs();
+      loadStats();
+    });
 }
+
+/* ================= 🔥 GRAPH DATA ================= */
+function loadStats() {
+  fetch("/stats")
+    .then(r => r.json())
+    .then(data => {
+      if (window.updateChart) {
+        updateChart(data.success, data.failed); // hook for chart
+      }
+    });
+}
+
+/* ================= 🔥 BLOCK IP ================= */
+function blockIP() {
+  const ip = document.getElementById("blockIP").value;
+
+  fetch("/block-ip", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ ip })
+  })
+  .then(r => r.json())
+  .then(data => {
+    alert(data.message);
+    loadBlocked();
+  });
+}
+
+/* ================= 🔥 LOAD BLOCKED ================= */
+function loadBlocked() {
+  fetch("/blocked")
+    .then(r => r.json())
+    .then(data => {
+      const el = document.getElementById("blockedList");
+      if (el) el.innerText = data.join("\n") || "No blocked IPs";
+    });
+}
+
+function logout() {
+  localStorage.removeItem("user");
+  window.location.href = "/login.html";
+}
+
+/* ================= 🔥 ALERT ================= */
+function showAlert(data) {
+  const box = document.getElementById("alertBox");
+  if (!box) return;
+
+  if (data.alert.includes("HIGH")) {
+    box.style.color = "red";
+  } else if (data.alert.includes("Suspicious")) {
+    box.style.color = "orange";
+  } else {
+    box.style.color = "lightgreen";
+  }
+
+  box.innerText = data.alert;
+}
+
+/* ================= AUTO LOAD ================= */
+window.onload = () => {
+  loadLogs();
+  loadStats();
+  loadBlocked();
+};
+

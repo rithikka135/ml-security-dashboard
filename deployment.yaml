@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-security-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ml-security
+  template:
+    metadata:
+      labels:
+        app: ml-security
+    spec:
+      containers:
+      - name: ml-security
+        image: rithikka123/ml-security:latest
+        ports:
+        - containerPort: 3000

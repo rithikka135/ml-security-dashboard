@@ -3,28 +3,25 @@
 <head>
   <title>ML Security System</title>
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
 </head>
 
 <body>
 
-<div class="nav">
-  <h3>🛡 ML Security System</h3>
-
-  <div>
-    <a href="index.html">Home</a>
-    <a href="login.html">Login</a>
-  </div>
-</div>
-
 <div class="hero">
-  <h1>AI Powered Security Monitoring System</h1>
-  <p>Detect suspicious logins and analyze system logs using ML-based detection.</p>
 
-  <a href="login.html">
-    <button>Get Started</button>
-  </a>
+  <h1>🛡 ML Security Dashboard</h1>
+  <p>Monitor logs, detect threats, and secure your system in real-time</p>
+
+  <button onclick="goLogin()">Get Started</button>
+
 </div>
 
-<script src="app.js"></script>
+<script>
+function goLogin() {
+  window.location.href = "/login.html";
+}
+</script>
+
 </body>
 </html>

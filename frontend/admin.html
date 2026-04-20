@@ -1,28 +1,123 @@
-<script>
-  if (!localStorage.getItem("user")) {
-    window.location.href = "login.html";
-  }
-</script>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="style.css">
 
-<div class="nav">
-  <button onclick="goDashboard()">User Panel</button>
-  <button onclick="goAdmin()">Admin Panel</button>
+  <!-- Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+<!-- 🔥 NAVBAR -->
+<div class="navbar">
+  <h2>🛡 Admin Security Panel</h2>
   <button onclick="logout()">Logout</button>
 </div>
 
-<div class="card">
+<!-- 🔥 MAIN CONTAINER -->
+<div class="container">
 
-<h2>Admin Panel</h2>
+  <!-- 🔥 ACTIONS -->
+  <div class="card">
+    <h3>Admin Controls</h3>
 
-<button onclick="loadLogs()">Load Logs</button>
-<button onclick="clearLogs()">Clear Logs</button>
+    <button onclick="loadLogs()">📄 View Logs</button>
+    <button onclick="analyze()">🧠 Run Analysis</button>
+    <button onclick="clearLogs()">🗑 Clear Logs</button>
+  </div>
 
-<pre id="logs"></pre>
+  <!-- 🔥 BLOCK IP -->
+  <div class="card">
+    <h3>Block IP</h3>
 
-<button onclick="analyze()">Detect Suspicious IPs</button>
+    <input id="blockIP" placeholder="Enter IP to block">
 
-<pre id="result"></pre>
+    <button onclick="blockIP()">🚫 Block IP</button>
+
+    <h4>Blocked IPs</h4>
+    <pre id="blockedList"></pre>
+  </div>
+
+  <!-- 🔥 ALERT PANEL -->
+  <div class="card full">
+    <h3>🚨 Security Alert</h3>
+    <div id="alertBox">No threats detected</div>
+  </div>
+
+  <!-- 🔥 LOGS -->
+  <div class="card full">
+    <h3>Logs</h3>
+    <pre id="logs"></pre>
+  </div>
+
+  <!-- 🔥 RESULT -->
+  <div class="card full">
+    <h3>Analysis Result</h3>
+    <pre id="result"></pre>
+  </div>
 
 </div>
 
 <script src="app.js"></script>
+
+<script>
+/* 🔥 LOAD BLOCKED IPS */
+function loadBlocked() {
+  fetch("http://localhost:3000/blocked")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("blockedList").innerText = data.join("\n");
+    });
+}
+
+/* 🔥 BLOCK IP */
+function blockIP() {
+  const ip = document.getElementById("blockIP").value;
+
+  fetch("http://localhost:3000/block-ip", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ ip })
+  })
+  .then(res => res.json())
+  .then(data => {
+    alert(data.message);
+    loadBlocked();
+  });
+}
+
+/* 🔥 ALERT DISPLAY */
+function showAlert(data) {
+  const box = document.getElementById("alertBox");
+
+  if (data.alert.includes("HIGH")) {
+    box.style.color = "red";
+  } else if (data.alert.includes("Suspicious")) {
+    box.style.color = "orange";
+  } else {
+    box.style.color = "lightgreen";
+  }
+
+  box.innerText = data.alert;
+}
+
+/* 🔥 OVERRIDE ANALYZE */
+function analyze() {
+  fetch("http://localhost:3000/analyze")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("result").innerText =
+        JSON.stringify(data, null, 2);
+
+      showAlert(data); // 🔥 ALERT HOOK
+    });
+}
+
+/* AUTO LOAD */
+loadBlocked();
+</script>
+
+</body>
+</html>
