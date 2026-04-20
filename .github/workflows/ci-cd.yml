@@ -31,17 +31,23 @@ jobs:
           cd backend
           node -c server.js
 
-      # Docker login
+      # Docker login (MOST STABLE METHOD)
       - name: Login to Docker Hub
-        run: |
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build and push Docker image
-      - name: Build and Push Docker Image
+      # Build image (IMPORTANT FIX: backend context)
+      - name: Build Docker Image
         run: |
-          docker build -t rithikka123/ml-security:latest .
+          docker build -t rithikka123/ml-security:latest backend
+
+      # Push image
+      - name: Push Docker Image
+        run: |
           docker push rithikka123/ml-security:latest
 
-      # Success
-      - name: Done
+      # Done
+      - name: Success
         run: echo "CI/CD SUCCESS 🚀"
