@@ -27,7 +27,44 @@ app.get("/", (req, res) => {
    MEMORY STORAGE
 ========================= */
 let logs = [];
-let blockedIPs = [];   // 🔥 NEW
+let blockedIPs = [];   // existing
+
+/* =========================
+   🔥 THREAT SCORE SYSTEM (NEW)
+========================= */
+let ipScores = {};
+
+function updateThreatScore(ip, isSuspicious) {
+  if (!ip) return null;
+
+  if (!ipScores[ip]) {
+    ipScores[ip] = {
+      score: 0,
+      status: "SAFE"
+    };
+  }
+
+  if (isSuspicious) {
+    ipScores[ip].score += 25;
+  } else {
+    ipScores[ip].score = Math.max(0, ipScores[ip].score - 5);
+  }
+
+  if (ipScores[ip].score >= 80) {
+    ipScores[ip].status = "BLOCKED";
+
+    if (!blockedIPs.includes(ip)) {
+      blockedIPs.push(ip);
+    }
+
+  } else if (ipScores[ip].score >= 50) {
+    ipScores[ip].status = "SUSPICIOUS";
+  } else {
+    ipScores[ip].status = "SAFE";
+  }
+
+  return ipScores[ip];
+}
 
 /* =========================
    LOGIN API
@@ -47,7 +84,7 @@ app.post("/login", (req, res) => {
 });
 
 /* =========================
-   ADD LOG API
+   ADD LOG API (UPDATED)
 ========================= */
 app.post("/add-log", (req, res) => {
   const { log } = req.body;
@@ -56,17 +93,22 @@ app.post("/add-log", (req, res) => {
     return res.status(400).json({ message: "Log is required" });
   }
 
-  // 🔥 BLOCK CHECK
   const ip = log.split("|")[1]?.trim();
+
   if (blockedIPs.includes(ip)) {
     return res.json({ message: "❌ BLOCKED IP - log rejected" });
   }
 
   logs.push(log);
 
+  const isSuspicious = log.includes("failed");
+
+  const threat = updateThreatScore(ip, isSuspicious);
+
   return res.json({
     message: "added",
-    totalLogs: logs.length
+    totalLogs: logs.length,
+    threat
   });
 });
 
@@ -86,7 +128,7 @@ app.post("/clear", (req, res) => {
 });
 
 /* =========================
-   🔥 GRAPH DATA API (NEW)
+   GRAPH DATA API
 ========================= */
 app.get("/stats", (req, res) => {
   const failed = logs.filter(l => l.includes("failed")).length;
@@ -99,7 +141,7 @@ app.get("/stats", (req, res) => {
 });
 
 /* =========================
-   🔥 BLOCK IP API (NEW)
+   BLOCK IP API
 ========================= */
 app.post("/block-ip", (req, res) => {
   const { ip } = req.body;
@@ -119,26 +161,73 @@ app.post("/block-ip", (req, res) => {
 });
 
 /* =========================
-   🔥 GET BLOCKED IPS (NEW)
+   GET BLOCKED IPS
 ========================= */
 app.get("/blocked", (req, res) => {
   res.json(blockedIPs);
 });
 
 /* =========================
-   ML ANALYSIS (UPDATED)
+   THREAT SCORE API
+========================= */
+app.get("/threat-scores", (req, res) => {
+  res.json(ipScores);
+});
+
+/* =====================================================
+   🧠🔥 AI SECURITY CHATBOT (NEW FEATURE ADDED HERE)
+===================================================== */
+app.post("/chatbot", (req, res) => {
+  const { message } = req.body;
+
+  if (!message) {
+    return res.json({ reply: "Please ask a question." });
+  }
+
+  const msg = message.toLowerCase();
+
+  // 🔥 SIMPLE SECURITY INTELLIGENCE
+  let reply = "I am not sure. Try asking about logs, IP, or threats.";
+
+  if (msg.includes("blocked")) {
+    reply = `Blocked IPs: ${blockedIPs.length > 0 ? blockedIPs.join(", ") : "No blocked IPs yet."}`;
+  }
+
+  else if (msg.includes("why") && msg.includes("ip")) {
+    reply = "An IP is blocked when it shows repeated failed login attempts or high threat score.";
+  }
+
+  else if (msg.includes("logs")) {
+    reply = `Total logs stored: ${logs.length}`;
+  }
+
+  else if (msg.includes("failed")) {
+    const failed = logs.filter(l => l.includes("failed")).length;
+    reply = `Failed attempts detected: ${failed}`;
+  }
+
+  else if (msg.includes("safe")) {
+    reply = "Safe logs are normal activities without suspicious behavior.";
+  }
+
+  else if (msg.includes("threat")) {
+    reply = "Threat score increases when suspicious activity like failed logins is detected.";
+  }
+
+  return res.json({ reply });
+});
+
+/* =========================
+   ML ANALYSIS
 ========================= */
 app.get("/analyze", (req, res) => {
   const failed = logs.filter(l => l.includes("failed")).length;
   const success = logs.filter(l => l.includes("success")).length;
 
-  const suspicious = failed >= 3;
-
   let riskLevel = "LOW";
   if (failed >= 5) riskLevel = "HIGH";
   else if (failed >= 3) riskLevel = "MEDIUM";
 
-  // 🔥 REAL-TIME ALERT
   let alert = "SAFE";
   if (riskLevel === "HIGH") alert = "🚨 HIGH ATTACK DETECTED";
   else if (riskLevel === "MEDIUM") alert = "⚠️ Suspicious Activity";
@@ -147,9 +236,8 @@ app.get("/analyze", (req, res) => {
     total: logs.length,
     failed,
     success,
-    suspicious,
     riskLevel,
-    alert   // 🔥 NEW
+    alert
   });
 });
 
@@ -163,7 +251,6 @@ app.get("/test", (req, res) => {
   });
 });
 
-
 /* =========================
    SERVER START
 ========================= */
@@ -172,3 +259,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("🚀 Server running on port", PORT);
 });
+
