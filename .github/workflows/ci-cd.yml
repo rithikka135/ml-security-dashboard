@@ -7,17 +7,15 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       # Checkout code
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       # Setup Node
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
@@ -27,19 +25,21 @@ jobs:
           cd backend
           npm install
 
-      # Check server file
+      # Syntax check
       - name: Syntax Check
         run: |
           cd backend
           node -c server.js
 
+      # Docker login
       - name: Login to Docker Hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
+      # Build and push Docker image
       - name: Build and Push Docker Image
         run: |
-          docker build -f Dockerfile -t rithikka123/ml-security:latest .
+          docker build -t rithikka123/ml-security:latest .
           docker push rithikka123/ml-security:latest
 
       # Success
